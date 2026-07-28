@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: FinSight
+
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 200MB
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:finsight}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+
+jwt:
+  secret: ${JWT_SECRET:finsight-local-dev-secret-change-me-to-a-long-random-32byte-plus-value}
+  access-token-expiration: ${JWT_EXPIRATION}
+
+file:
+  upload:
+    local-dir: ${FILE_UPLOAD_DIR}
+    max-video-size: 209715200
+  storage:
+    type: ${FILE_STORAGE_TYPE}
+
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET}
+    region: ${AWS_REGION}
