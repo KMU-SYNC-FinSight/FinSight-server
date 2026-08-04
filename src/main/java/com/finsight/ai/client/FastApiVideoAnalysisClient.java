@@ -5,6 +5,7 @@ import com.finsight.ai.dto.AnalyzeSubmitResponse;
 import com.finsight.ai.dto.VideoAnalysisResult;
 import com.finsight.global.exception.BusinessException;
 import com.finsight.global.exception.ErrorCode;
+import com.finsight.global.storage.FileStorage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
@@ -15,6 +16,8 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 @Slf4j
@@ -23,46 +26,61 @@ import java.nio.file.Path;
 public class FastApiVideoAnalysisClient implements VideoAnalysisClient {
 
     private final RestClient restClient;
+    private final FileStorage fileStorage;          // ← 추가
     private final String aiServerUrl;
 
-    // 폴링 설정
-    private static final long POLL_INTERVAL_MS = 3000;   // 3초마다 폴링
-    private static final int MAX_POLL_ATTEMPTS = 200;    // 최대 200회 (약 10분)
+    private static final long POLL_INTERVAL_MS = 3000;
+    private static final int MAX_POLL_ATTEMPTS = 200;
 
     public FastApiVideoAnalysisClient(
             RestClient restClient,
+            FileStorage fileStorage,                    // ← 추가
             @Value("${ai.server.url}") String aiServerUrl
     ) {
         this.restClient = restClient;
+        this.fileStorage = fileStorage;
         this.aiServerUrl = aiServerUrl;
     }
 
     @Override
     public VideoAnalysisResult analyze(String storedFilePath) {
-        // 1. 영상 파일을 multipart로 제출 → jobId 받기
-        String jobId = submit(storedFilePath);
-        log.info("AI 분석 제출 완료: jobId={}", jobId);
+        Path tempFile = null;
+        boolean isTemp = false;
+        try {
+            // S3면 임시 다운로드, 로컬이면 그냥 그 경로
+            tempFile = fileStorage.downloadToTemp(storedFilePath);
+            isTemp = tempFile.toString().contains("ai-analysis-");  // 임시파일 여부
 
-        // 2. jobId로 폴링 → DONE 될 때까지
-        AnalyzePollResponse result = poll(jobId);
-        log.info("AI 분석 완료: jobId={}", jobId);
+            String jobId = submit(tempFile);
+            log.info("AI 분석 제출 완료: jobId={}", jobId);
 
-        // 3. 우리 DTO로 변환해서 반환
-        return new VideoAnalysisResult(
-                result.modelName(),
-                result.modelVersion(),
-                result.averageOccupancy(),
-                result.peakOccupancy(),
-                result.trackedObjectCount(),
-                result.averageDwellSeconds(),
-                result.congestionLevel()
-        );
+            AnalyzePollResponse result = poll(jobId);
+            log.info("AI 분석 완료: jobId={}", jobId);
+
+            return new VideoAnalysisResult(
+                    result.modelName(),
+                    result.modelVersion(),
+                    result.averageOccupancy(),
+                    result.peakOccupancy(),
+                    result.trackedObjectCount(),
+                    result.averageDwellSeconds(),
+                    result.congestionLevel()
+            );
+        } finally {
+            // 임시 파일이면 삭제 (S3에서 받아온 경우)
+            if (isTemp && tempFile != null) {
+                try {
+                    Files.deleteIfExists(tempFile);
+                } catch (IOException e) {
+                    log.warn("임시 파일 삭제 실패: {}", tempFile);
+                }
+            }
+        }
     }
 
-    // ── 제출 ──
-    private String submit(String storedFilePath) {
+    private String submit(Path filePath) {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("file", new FileSystemResource(Path.of(storedFilePath)));
+        body.add("file", new FileSystemResource(filePath));
 
         AnalyzeSubmitResponse response = restClient.post()
                 .uri(aiServerUrl + "/analyze")
@@ -77,7 +95,6 @@ public class FastApiVideoAnalysisClient implements VideoAnalysisClient {
         return response.jobId();
     }
 
-    // ── 폴링 ──
     private AnalyzePollResponse poll(String jobId) {
         for (int attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
             AnalyzePollResponse response = restClient.get()
@@ -88,19 +105,15 @@ public class FastApiVideoAnalysisClient implements VideoAnalysisClient {
             if (response == null) {
                 throw new BusinessException(ErrorCode.AI_ANALYSIS_FAILED);
             }
-
             String status = response.status();
-
             if ("DONE".equals(status)) {
-                return response;                    // 완료 → 결과 반환
+                return response;
             }
             if ("FAILED".equals(status)) {
                 throw new BusinessException(ErrorCode.AI_ANALYSIS_FAILED);
             }
-            // PENDING / PROCESSING → 계속 폴링
             sleep(POLL_INTERVAL_MS);
         }
-        // 최대 시도 초과 → 타임아웃
         throw new BusinessException(ErrorCode.AI_ANALYSIS_TIMEOUT);
     }
 

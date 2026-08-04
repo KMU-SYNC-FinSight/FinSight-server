@@ -63,6 +63,12 @@ public class LocalFileStorage implements FileStorage {
             throw new BusinessException(ErrorCode.FILE_STORAGE_ERROR);
         }
     }
+    // 기존 store() 아래에 추가
+    @Override
+    public Path downloadToTemp(String storedFilePath) {
+        // 로컬은 이미 디스크에 있으니 그 경로 그대로 반환
+        return Path.of(storedFilePath);
+    }
 
     private String sanitize(String filename) {
         if (filename == null || filename.isBlank()) {

@@ -11,9 +11,12 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;   // ← 추가
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
+import java.nio.file.Files;                                          // ← 추가
+import java.nio.file.Path;                                           // ← 추가
 import java.util.UUID;
 
 @Component
@@ -58,6 +61,32 @@ public class S3FileStorage implements FileStorage {
             return key;
 
         } catch (IOException e) {
+            throw new BusinessException(ErrorCode.FILE_STORAGE_ERROR);
+        }
+    }
+
+    // ── 추가: S3에서 파일을 임시 폴더로 다운로드 ──
+    @Override
+    public Path downloadToTemp(String storedFilePath) {
+        try {
+            // 확장자 유지해서 임시 파일 생성
+            String suffix = storedFilePath.contains(".")
+                    ? storedFilePath.substring(storedFilePath.lastIndexOf('.'))
+                    : "";
+            Path tempFile = Files.createTempFile("ai-analysis-", suffix);
+
+            // S3에서 다운로드 (storedFilePath = S3 key)
+            s3Client.getObject(
+                    GetObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(storedFilePath)
+                            .build(),
+                    tempFile
+            );
+
+            return tempFile;
+
+        } catch (Exception e) {
             throw new BusinessException(ErrorCode.FILE_STORAGE_ERROR);
         }
     }
