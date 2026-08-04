@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;          // ← 추가
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDateTime;                                        // ← 추가
 
 @Tag(name = "Upload", description = "파일 업로드 API")
 @RestController
@@ -38,10 +41,15 @@ public class UploadController {
             @AuthenticationPrincipal CustomUserPrincipal principal,
             @Parameter(description = "매장 ID", example = "1")
             @PathVariable Long storeId,
-            @RequestParam("file") MultipartFile file
+            @RequestParam("file") MultipartFile file,
+            @Parameter(description = "영상 촬영 일시 (ISO 형식)", example = "2026-07-15T14:00:00")
+            @RequestParam("recordedAt")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime recordedAt
     ) {
         VideoUploadResponse response =
-                uploadService.uploadVideo(principal.getUserId(), storeId, file);
+                uploadService.uploadVideo(
+                        principal.getUserId(), storeId, file, recordedAt);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)

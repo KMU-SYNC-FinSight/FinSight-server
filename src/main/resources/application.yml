@@ -8,9 +8,9 @@ spring:
       max-request-size: 200MB
 
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:finsight}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: ${DB_USERNAME:finsight}
-    password: ${DB_PASSWORD:finsight1234}
+    url: jdbc:mysql://${DB_HOST}:3306/${DB_NAME}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -50,3 +50,7 @@ aws:
   s3:
     bucket: ${AWS_S3_BUCKET}
     region: ${AWS_REGION}
+
+ai:
+  server:
+    url: ${AI_SERVER_URL}

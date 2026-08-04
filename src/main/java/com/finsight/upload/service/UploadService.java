@@ -17,6 +17,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 
@@ -40,7 +41,9 @@ public class UploadService {
     public VideoUploadResponse uploadVideo(
             Long userId,
             Long storeId,
-            MultipartFile file
+            MultipartFile file,
+            LocalDateTime recordedAt
+
     ) {
         // 1. 매장 소유권 확인 (남의 매장/없는 매장이면 STORE_NOT_FOUND)
         Store store = storeRepository.findByIdAndUserId(storeId, userId)
@@ -57,7 +60,8 @@ public class UploadService {
         DataUpload upload = DataUpload.createVideoUpload(
                 store.getId(),
                 file.getOriginalFilename(),
-                storedPath
+                storedPath,
+                recordedAt
         );
         DataUpload saved = dataUploadRepository.save(upload);
         Long uploadId = saved.getId();

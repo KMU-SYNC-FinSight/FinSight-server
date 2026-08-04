@@ -5,15 +5,10 @@ import com.finsight.ai.dto.VideoAnalysisResult;
 import com.finsight.score.service.ScoreService;
 import com.finsight.upload.domain.DataUpload;
 import com.finsight.upload.repository.DataUploadRepository;
-import com.finsight.visitor.domain.VisitorMetric;
-import com.finsight.visitor.repository.VisitorMetricRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
 
 @Slf4j
 @Component
@@ -21,55 +16,40 @@ import java.time.LocalDate;
 public class VideoAnalysisProcessor {
 
     private final DataUploadRepository dataUploadRepository;
-    private final VisitorMetricRepository visitorMetricRepository;
+    private final UploadStatusService uploadStatusService;   // ← 추가
     private final VideoAnalysisClient videoAnalysisClient;
-    private final ScoreService scoreService;  // 필드 추가
+    private final ScoreService scoreService;
 
     @Async("analysisExecutor")
-    @Transactional
     public void process(Long uploadId) {
-        DataUpload upload = dataUploadRepository.findById(uploadId)
-                .orElse(null);
+        // 존재 확인 (트랜잭션 없이 단순 조회)
+        DataUpload upload = dataUploadRepository.findById(uploadId).orElse(null);
         if (upload == null) {
             log.warn("분석 대상 업로드 없음: uploadId={}", uploadId);
             return;
         }
+        String storedFilePath = upload.getStoredFilePath();
+        Long storeId = upload.getStoreId();
 
         try {
-            // 1. PROCESSING 전환
-            upload.markProcessing();
-            dataUploadRepository.saveAndFlush(upload);
+            // 1. PROCESSING → 즉시 커밋 (별도 트랜잭션)
+            uploadStatusService.markProcessing(uploadId);
 
-            // 2. AI 분석 (Mock, 지연 포함)
+            // 2. AI 분석 (트랜잭션 밖에서 오래 걸림)
             VideoAnalysisResult result =
-                    videoAnalysisClient.analyze(upload.getStoredFilePath());
+                    videoAnalysisClient.analyze(storedFilePath);
 
-            // 3. visitor_metrics 저장
-            VisitorMetric metric = VisitorMetric.create(
-                    upload.getStoreId(),
-                    upload.getId(),
-                    LocalDate.now(),
-                    result.averageOccupancy(),
-                    result.peakOccupancy(),
-                    result.trackedObjectCount(),
-                    result.averageDwellSeconds(),
-                    result.congestionLevel()
-            );
-            visitorMetricRepository.save(metric);
+            // 3. 결과 저장 + COMPLETED → 즉시 커밋 (별도 트랜잭션)
+            uploadStatusService.saveResultAndComplete(uploadId, result);
 
-            // 4. COMPLETED 전환
-            upload.markCompleted();
-            dataUploadRepository.save(upload);
-
-            // 5. 운영 점수 재계산
-            scoreService.recalculate(upload.getStoreId());
+            // 4. 운영 점수 재계산
+            scoreService.recalculate(storeId);
 
             log.info("영상 분석 완료: uploadId={}", uploadId);
 
         } catch (Exception e) {
             log.error("영상 분석 실패: uploadId={}", uploadId, e);
-            upload.markFailed("영상 분석 중 오류가 발생했습니다.");
-            dataUploadRepository.save(upload);
+            uploadStatusService.markFailed(uploadId, "영상 분석 중 오류가 발생했습니다.");
         }
     }
 }

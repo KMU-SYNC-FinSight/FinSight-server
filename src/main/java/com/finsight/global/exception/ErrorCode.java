@@ -118,6 +118,17 @@ public enum ErrorCode {
             HttpStatus.NOT_FOUND,
             "SCORE_NOT_READY",
             "아직 운영 점수가 산출되지 않았습니다. 데이터를 먼저 업로드해 주세요."
+    ),
+    AI_ANALYSIS_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "AI_ANALYSIS_FAILED",
+            "영상 분석 중 오류가 발생했습니다."
+    ),
+
+    AI_ANALYSIS_TIMEOUT(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "AI_ANALYSIS_TIMEOUT",
+            "영상 분석 시간이 초과되었습니다."
     );
 
     private final HttpStatus status;

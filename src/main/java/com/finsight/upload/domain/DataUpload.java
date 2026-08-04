@@ -45,13 +45,18 @@ public class DataUpload extends BaseTimeEntity {
     @Column(name = "error_message", length = 500)
     private String errorMessage;
 
+    @Column(name = "recorded_at")
+    private LocalDateTime recordedAt;   // 영상 촬영 일시 (연-월-일-시)
+
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
     public static DataUpload createVideoUpload(
             Long storeId,
             String originalFileName,
-            String storedFilePath
+            String storedFilePath,
+            LocalDateTime recordedAt
+
     ) {
         DataUpload upload = new DataUpload();
         upload.storeId = storeId;
@@ -60,6 +65,7 @@ public class DataUpload extends BaseTimeEntity {
         upload.originalFileName = originalFileName;
         upload.storedFilePath = storedFilePath;
         upload.errorMessage = null;
+        upload.recordedAt = recordedAt;
         upload.completedAt = null;
         return upload;
     }
