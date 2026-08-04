@@ -65,17 +65,15 @@ public class S3FileStorage implements FileStorage {
         }
     }
 
-    // ── 추가: S3에서 파일을 임시 폴더로 다운로드 ──
     @Override
     public Path downloadToTemp(String storedFilePath) {
         try {
-            // 확장자 유지해서 임시 파일 생성
             String suffix = storedFilePath.contains(".")
                     ? storedFilePath.substring(storedFilePath.lastIndexOf('.'))
                     : "";
             Path tempFile = Files.createTempFile("ai-analysis-", suffix);
+            Files.delete(tempFile);   // ← 추가: 빈 파일 삭제 (경로만 남김)
 
-            // S3에서 다운로드 (storedFilePath = S3 key)
             s3Client.getObject(
                     GetObjectRequest.builder()
                             .bucket(bucket)
