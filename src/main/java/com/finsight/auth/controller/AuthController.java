@@ -1,5 +1,6 @@
 package com.finsight.auth.controller;
 
+import com.finsight.auth.dto.KakaoLoginRequest;
 import com.finsight.auth.dto.LoginRequest;
 import com.finsight.auth.dto.LoginResponse;
 import com.finsight.auth.dto.SignupRequest;
@@ -51,6 +52,18 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request
     ) {
         LoginResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "카카오 로그인",
+            description = "카카오 인가 코드로 로그인하고 JWT Access Token을 발급합니다. 신규 카카오 회원은 자동으로 가입됩니다."
+    )
+    @PostMapping("/kakao")
+    public ResponseEntity<LoginResponse> kakaoLogin(
+            @Valid @RequestBody KakaoLoginRequest request
+    ) {
+        LoginResponse response = authService.kakaoLogin(request);
         return ResponseEntity.ok(response);
     }
 }
