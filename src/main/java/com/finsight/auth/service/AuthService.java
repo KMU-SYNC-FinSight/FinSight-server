@@ -1,5 +1,8 @@
 package com.finsight.auth.service;
 
+import com.finsight.auth.client.KakaoApiClient;
+import com.finsight.auth.dto.KakaoLoginRequest;
+import com.finsight.auth.dto.KakaoUserInfoResponse;
 import com.finsight.auth.dto.LoginRequest;
 import com.finsight.auth.dto.LoginResponse;
 import com.finsight.auth.dto.SignupRequest;
@@ -22,6 +25,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final KakaoApiClient kakaoApiClient;
 
     @Transactional
     public SignupResponse signup(SignupRequest request) {
@@ -55,6 +59,34 @@ public class AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new BusinessException(ErrorCode.INVALID_LOGIN_CREDENTIALS);
         }
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.INACTIVE_ACCOUNT);
+        }
+
+        String accessToken = jwtTokenProvider.createAccessToken(
+                user.getId(),
+                user.getRole(),
+                user.getProvider()
+        );
+
+        return LoginResponse.of(user, accessToken);
+    }
+
+    @Transactional
+    public LoginResponse kakaoLogin(KakaoLoginRequest request) {
+        String kakaoAccessToken = kakaoApiClient.getAccessToken(request.code());
+        KakaoUserInfoResponse userInfo = kakaoApiClient.getUserInfo(kakaoAccessToken);
+        String providerId = String.valueOf(userInfo.id());
+
+        User user = userRepository.findByProviderAndProviderId(LoginProvider.KAKAO, providerId)
+                .orElseGet(() -> userRepository.save(
+                        User.createKakaoUser(
+                                userInfo.email(),
+                                userInfo.nickname() != null ? userInfo.nickname() : "카카오 사용자",
+                                providerId
+                        )
+                ));
 
         if (user.getStatus() != UserStatus.ACTIVE) {
             throw new BusinessException(ErrorCode.INACTIVE_ACCOUNT);

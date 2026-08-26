@@ -129,6 +129,24 @@ public enum ErrorCode {
             HttpStatus.INTERNAL_SERVER_ERROR,
             "AI_ANALYSIS_TIMEOUT",
             "영상 분석 시간이 초과되었습니다."
+    ),
+
+    KAKAO_AUTH_FAILED(
+            HttpStatus.UNAUTHORIZED,
+            "KAKAO_AUTH_FAILED",
+            "카카오 인가 코드가 유효하지 않습니다."
+    ),
+
+    KAKAO_TOKEN_REQUEST_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "KAKAO_TOKEN_REQUEST_FAILED",
+            "카카오 토큰 요청 중 오류가 발생했습니다."
+    ),
+
+    KAKAO_USER_INFO_REQUEST_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "KAKAO_USER_INFO_REQUEST_FAILED",
+            "카카오 사용자 정보 조회 중 오류가 발생했습니다."
     );
 
     private final HttpStatus status;
