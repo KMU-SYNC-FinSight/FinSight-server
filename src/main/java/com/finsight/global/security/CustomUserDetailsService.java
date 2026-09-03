@@ -1,11 +1,13 @@
 package com.finsight.global.security;
 
+import com.finsight.global.config.CacheConfig;
 import com.finsight.global.exception.BusinessException;
 import com.finsight.global.exception.ErrorCode;
 import com.finsight.user.domain.User;
 import com.finsight.user.domain.UserStatus;
 import com.finsight.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +17,7 @@ public class CustomUserDetailsService {
 
     private final UserRepository userRepository;
 
+    @Cacheable(cacheNames = CacheConfig.USER_PRINCIPAL_CACHE, key = "#userId")
     @Transactional(readOnly = true)
     public CustomUserPrincipal loadUserById(Long userId) {
         User user = userRepository.findById(userId)
