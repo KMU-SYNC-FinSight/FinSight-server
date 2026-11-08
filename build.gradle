@@ -55,12 +55,25 @@ dependencies {
     // OpenCSV
     implementation 'com.opencsv:opencsv:5.9'
 
+    // Spring Modulith (모듈 경계 검증 + 모듈 간 이벤트 발행 기록)
+    implementation 'org.springframework.modulith:spring-modulith-starter-core'
+    // 이벤트 발행 기록은 JDBC 저장소 사용: JPA 저장소는 ddl-auto가 serialized_event를 VARCHAR(255)로 만들어 긴 이벤트를 못 담는다
+    implementation 'org.springframework.modulith:spring-modulith-starter-jdbc'
+
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+dependencyManagement {
+    imports {
+        // Spring Boot 3.5와 호환되는 Spring Modulith 1.4.x
+        mavenBom 'org.springframework.modulith:spring-modulith-bom:1.4.14'
+    }
 }
 
 tasks.named('test') {
