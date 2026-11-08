@@ -29,8 +29,9 @@ Read: docs/conventions/git-convention.md
 ### 이슈 생성
 
 - 이슈 이름에 `type`이 들어가지 않도록 한다.
-- `.github/ISSUE_TEMPLATE/issue-template.md` 형식을 따른다
+- `.github/ISSUE_TEMPLATE/-issue-template.md` 형식을 따른다
 - 구현 내용을 체크리스트로 작성한다
+- 작업 type에 맞는 라벨을 붙인다 (`git-convention.md` 5절)
 
 ### 브랜치 생성
 
@@ -43,6 +44,7 @@ Read: docs/conventions/git-convention.md
 - 제목 형식: `[{Type}/#{이슈번호}] {설명}`
 - `.github/pull_request_template.md` 형식을 따른다
 - 연관 이슈를 반드시 연결한다
+- 이슈와 같은 라벨을 붙인다
 
 ### 이슈-브랜치-PR 전체 흐름
 
@@ -56,4 +58,5 @@ Read: docs/conventions/git-convention.md
 - [ ] 브랜치명에 이슈번호가 포함됐는가
 - [ ] PR 제목 형식이 `[{Type}/#{이슈번호}] {설명}`인가
 - [ ] PR에 연관 이슈가 연결됐는가
-- [ ] `Co-Authored-By` 트레일러가 없는가
+- [ ] 이슈·PR에 type 라벨이 붙었는가
+- [ ] 커밋 메시지·PR 본문에 `Co-Authored-By` 등 AI 트레일러가 없는가
