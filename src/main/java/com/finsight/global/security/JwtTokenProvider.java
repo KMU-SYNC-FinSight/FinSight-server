@@ -1,7 +1,5 @@
 package com.finsight.global.security;
 
-import com.finsight.user.domain.LoginProvider;
-import com.finsight.user.domain.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -28,18 +26,19 @@ public class JwtTokenProvider {
         this.accessTokenExpiration = accessTokenExpiration;
     }
 
+    // role, provider는 enum 이름(예: OWNER, KAKAO). global이 user 모듈의 enum을 알지 않도록 문자열로 받는다.
     public String createAccessToken(
             Long userId,
-            UserRole role,
-            LoginProvider provider
+            String role,
+            String provider
     ) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + accessTokenExpiration);
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))
-                .claim("role", role.name())
-                .claim("provider", provider.name())
+                .claim("role", role)
+                .claim("provider", provider)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(secretKey)

@@ -1,7 +1,5 @@
 package com.finsight.global.security;
 
-import com.finsight.user.domain.User;
-import com.finsight.user.domain.UserRole;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,13 +12,14 @@ public class CustomUserPrincipal implements UserDetails {
     private final Long userId;
     private final String email;
     private final String password;
-    private final UserRole role;
+    // 권한 이름 (예: OWNER). global이 user 모듈의 UserRole을 알지 않도록 문자열로 받는다.
+    private final String role;
 
     private CustomUserPrincipal(
             Long userId,
             String email,
             String password,
-            UserRole role
+            String role
     ) {
         this.userId = userId;
         this.email = email;
@@ -28,13 +27,13 @@ public class CustomUserPrincipal implements UserDetails {
         this.role = role;
     }
 
-    public static CustomUserPrincipal from(User user) {
-        return new CustomUserPrincipal(
-                user.getId(),
-                user.getEmail(),
-                user.getPassword(),
-                user.getRole()
-        );
+    public static CustomUserPrincipal of(
+            Long userId,
+            String email,
+            String password,
+            String role
+    ) {
+        return new CustomUserPrincipal(userId, email, password, role);
     }
 
     public Long getUserId() {
@@ -45,13 +44,13 @@ public class CustomUserPrincipal implements UserDetails {
         return email;
     }
 
-    public UserRole getRole() {
+    public String getRole() {
         return role;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role));
     }
 
     @Override
