@@ -1,0 +1,111 @@
+package com.finsight.user.internal.service;
+
+import com.finsight.user.internal.client.KakaoApiClient;
+import com.finsight.user.internal.dto.KakaoLoginRequest;
+import com.finsight.user.internal.dto.KakaoUserInfoResponse;
+import com.finsight.user.internal.dto.LoginRequest;
+import com.finsight.user.internal.dto.LoginResponse;
+import com.finsight.user.internal.dto.SignupRequest;
+import com.finsight.user.internal.dto.SignupResponse;
+import com.finsight.global.exception.BusinessException;
+import com.finsight.global.exception.ErrorCode;
+import com.finsight.global.security.JwtTokenProvider;
+import com.finsight.user.internal.domain.LoginProvider;
+import com.finsight.user.internal.domain.User;
+import com.finsight.user.internal.domain.UserStatus;
+import com.finsight.user.internal.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+    private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final KakaoApiClient kakaoApiClient;
+
+    @Transactional
+    public SignupResponse signup(SignupRequest request) {
+        validateDuplicateEmail(request.email());
+
+        String encodedPassword =
+                passwordEncoder.encode(request.password());
+
+        User user = User.createLocalUser(
+                request.email(),
+                encodedPassword,
+                request.name()
+        );
+
+        User savedUser = userRepository.save(user);
+
+        return SignupResponse.from(savedUser);
+    }
+
+    @Transactional(readOnly = true)
+    public LoginResponse login(LoginRequest request) {
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() ->
+                        new BusinessException(ErrorCode.INVALID_LOGIN_CREDENTIALS));
+
+        // 카카오 등 LOCAL이 아닌 계정은 이메일 로그인 불가
+        if (user.getProvider() != LoginProvider.LOCAL) {
+            throw new BusinessException(ErrorCode.INVALID_LOGIN_CREDENTIALS);
+        }
+
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new BusinessException(ErrorCode.INVALID_LOGIN_CREDENTIALS);
+        }
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.INACTIVE_ACCOUNT);
+        }
+
+        String accessToken = jwtTokenProvider.createAccessToken(
+                user.getId(),
+                user.getRole().name(),
+                user.getProvider().name()
+        );
+
+        return LoginResponse.of(user, accessToken);
+    }
+
+    @Transactional
+    public LoginResponse kakaoLogin(KakaoLoginRequest request) {
+        String kakaoAccessToken = kakaoApiClient.getAccessToken(request.code());
+        KakaoUserInfoResponse userInfo = kakaoApiClient.getUserInfo(kakaoAccessToken);
+        String providerId = String.valueOf(userInfo.id());
+
+        User user = userRepository.findByProviderAndProviderId(LoginProvider.KAKAO, providerId)
+                .orElseGet(() -> userRepository.save(
+                        User.createKakaoUser(
+                                userInfo.email(),
+                                userInfo.nickname() != null ? userInfo.nickname() : "카카오 사용자",
+                                providerId
+                        )
+                ));
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.INACTIVE_ACCOUNT);
+        }
+
+        String accessToken = jwtTokenProvider.createAccessToken(
+                user.getId(),
+                user.getRole().name(),
+                user.getProvider().name()
+        );
+
+        return LoginResponse.of(user, accessToken);
+    }
+
+    private void validateDuplicateEmail(String email) {
+        if (userRepository.existsByEmail(email)) {
+            throw new BusinessException(
+                    ErrorCode.DUPLICATE_EMAIL
+            );
+        }
+    }
+}

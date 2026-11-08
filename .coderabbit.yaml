@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=https://storage.googleapis.com/coderabbit_public_assets/schema.v2.json
+# CodeRabbit 설정. 규칙 근거는 docs/conventions/* 문서.
+language: "ko-KR"
+tone_instructions: "간결하고 근거 중심으로 리뷰한다. 변경된 범위에 집중하고 임의의 리팩토링은 권하지 않는다. 컨벤션 위반은 docs/conventions 문서를 근거로 지적한다."
+
+reviews:
+  profile: "chill"
+  high_level_summary: false  # PR 본문에 요약 섹션을 추가하지 않는다
+  changed_files_summary: true
+  review_status: true
+  poem: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - "main"
+  path_filters:
+    - "!**/build/**"
+    - "!**/.gradle/**"
+    - "!gradle/wrapper/**"
+    - "!uploads/**"
+  path_instructions:
+    - path: "src/main/java/com/finsight/**/*.java"
+      instructions: |
+        모듈 경계(architecture.md 2·3·4절):
+        - com.finsight 바로 아래 패키지 하나가 Spring Modulith 모듈 하나다. 다른 모듈은 그 모듈 최상위 패키지의 공개 API(인터페이스·record·enum·이벤트)로만 참조한다.
+        - 다른 모듈의 internal 패키지(엔티티·Repository·Service·DTO)를 import하면 지적한다.
+        - 다른 모듈 데이터는 ID 값(store_id 등)으로만 들고, 다른 모듈 엔티티와 JPA 연관관계·FK를 맺지 않는다.
+        - 다른 모듈의 후속 처리는 직접 호출 대신 이벤트로 한다. 리스너는 @ApplicationModuleListener가 기본이고, 예외를 삼키지 않는다(5-2절).
+        코드 작성(coding-style.md):
+        - Controller는 같은 모듈 Service만 부르고 비즈니스 로직·try-catch를 두지 않는다. 로그인 사용자는 @AuthenticationPrincipal CustomUserPrincipal로 받아 userId만 Service에 넘긴다.
+        - Service는 @Service + @RequiredArgsConstructor 구체 클래스다. 매장에 딸린 데이터는 StoreQuery로 소유권부터 확인한다. 엔티티를 Service 밖으로 내보내지 않는다.
+        - DTO는 internal.dto의 record + @Schema. 엔티티는 protected 기본 생성자 + static create(...)로 만들고 @Setter·@Data·@Builder를 쓰지 않는다.
+        - @Transactional은 Service 메서드에만 붙이고, 조회는 readOnly = true. 오래 걸리는 외부 호출은 트랜잭션 밖에서 한다.
+        예외·로그(error-handling.md, logging.md):
+        - 업무 오류는 new BusinessException(ErrorCode.…)로 던지고, 새 코드는 global.exception.ErrorCode에 추가한다. 라이브러리 예외를 바꿔 던질 때는 그 자리에서 로그를 남긴다.
+        - 로그는 @Slf4j + SLF4J placeholder로 남긴다. System.out.println, 토큰·인가 코드·개인정보 로그는 지적한다.
+    - path: "src/main/java/com/finsight/*/package-info.java"
+      instructions: |
+        allowedDependencies에 모듈을 추가하면 순환이 생기지 않는지, 공개 API 대신 이벤트로 풀 수 있는지 확인한다(architecture.md 4-2절).
+    - path: "src/main/java/com/finsight/global/**"
+      instructions: |
+        global은 OPEN 공용 모듈이라 도메인 모듈(user, store, upload, sales, visitor, score, dashboard, report)을 참조하면 안 된다.
+        도메인 기능이 필요하면 global에 인터페이스를 두고 도메인 모듈이 구현한다(예: PrincipalLoader).
+    - path: "src/main/java/com/finsight/**/internal/domain/**"
+      instructions: |
+        JPA 엔티티: 스키마는 ddl-auto: update로 반영된다. 컬럼 삭제·이름 변경·타입 축소, 기존 데이터와 충돌하는 제약(unique 등)은 자동 반영되지 않거나 실패하므로 PR 본문에 dev DB 적용 방법이 있는지 확인한다.
+    - path: "src/main/resources/application*.yml"
+      instructions: |
+        config-and-auth.md 기준: 새 설정값은 환경변수(${...})로 받고 .env.example에도 추가한다. 비밀값을 yml에 직접 쓰면 지적한다.
+
+chat:
+  auto_reply: true

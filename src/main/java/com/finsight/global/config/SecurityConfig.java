@@ -1,6 +1,6 @@
 package com.finsight.global.config;
 
-import com.finsight.global.security.CustomUserDetailsService;
+import com.finsight.global.security.PrincipalLoader;
 import com.finsight.global.security.JwtAuthenticationEntryPoint;
 import com.finsight.global.security.JwtAuthenticationFilter;
 import com.finsight.global.security.JwtTokenProvider;
@@ -25,7 +25,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final CustomUserDetailsService customUserDetailsService;
+    private final PrincipalLoader principalLoader;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     private static final String[] PUBLIC_URLS = {
@@ -50,7 +50,7 @@ public class SecurityConfig {
         JwtAuthenticationFilter jwtAuthenticationFilter =
                 new JwtAuthenticationFilter(
                         jwtTokenProvider,
-                        customUserDetailsService
+                        principalLoader
                 );
 
         http

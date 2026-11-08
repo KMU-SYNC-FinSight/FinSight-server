@@ -21,6 +21,13 @@ spring:
         format_sql: true
     open-in-view: false
 
+  # Spring Modulith 이벤트 발행 기록 (모듈 간 이벤트를 리스너가 끝낼 때까지 EVENT_PUBLICATION에 남긴다)
+  modulith:
+    events:
+      jdbc:
+        schema-initialization:
+          enabled: true   # EVENT_PUBLICATION 테이블이 없으면 시작할 때 만든다
+
 springdoc:
   api-docs:
     path: /v3/api-docs

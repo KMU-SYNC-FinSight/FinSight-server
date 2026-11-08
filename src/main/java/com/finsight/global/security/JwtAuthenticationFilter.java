@@ -26,7 +26,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String EXCEPTION_ATTRIBUTE = "exception";
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final CustomUserDetailsService customUserDetailsService;
+    private final PrincipalLoader principalLoader;
 
     @Override
     protected void doFilterInternal(
@@ -41,7 +41,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 Long userId = jwtTokenProvider.getUserId(token);
                 CustomUserPrincipal principal =
-                        customUserDetailsService.loadUserById(userId);
+                        principalLoader.loadUserById(userId);
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(

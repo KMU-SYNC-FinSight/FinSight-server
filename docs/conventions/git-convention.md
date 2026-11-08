@@ -24,7 +24,14 @@ type: 제목 - #PR번호
 - **제목**: 한글, 명사형/동사 종결형, 마침표 없음
 - **PR번호**: Squash Merge 커밋에만 붙인다
 
-### 1-2. Type 종류
+### 1-2. 본문·트레일러
+
+- 커밋 메시지는 **제목 한 줄**을 기본으로 한다. 배경 설명이 필요하면 빈 줄 뒤에 본문을 덧붙인다.
+- **AI 도구가 남기는 트레일러를 넣지 않는다.** `Co-Authored-By: Claude ...`, `Claude-Session: ...`,
+  `Generated with ...` 같은 줄은 커밋 메시지·PR 본문 어디에도 추가하지 않는다.
+- 커밋 작성자는 실제 작업자 본인이다. AI 에이전트를 공동 작성자로 표기하지 않는다.
+
+### 1-3. Type 종류
 
 | type | 설명 |
 | --- | --- |
@@ -36,7 +43,7 @@ type: 제목 - #PR번호
 | `chore` | 빌드 설정, 의존성, 기타 잡무 |
 | `init` | 프로젝트·모듈 초기 세팅 |
 
-### 1-3. 예시
+### 1-4. 예시
 
 ```
 feat: 사물함 신청 API 추가
@@ -107,7 +114,7 @@ Squash Merge 시 커밋 메시지에 `- #PR번호`를 추가한다.
 
 ### 3-2. PR 본문
 
-`.github/pull_request_template.md`를 사용한다. 연관 이슈 연결, 작업 내용, 리뷰 요구사항을 기술한다.
+`.github/pull_request_template.md`를 사용한다. 연관 이슈 연결, 해결하려는 문제와 이유, 해결 방법, 한계·트레이드오프, 기존 기능 영향, 실패 시나리오, 검토한 대안, 리뷰 포인트를 기술한다. 해당 없는 항목은 지우지 말고 "없음"이라고 적는다.
 
 ### 3-3. Merge 전략
 
@@ -127,7 +134,7 @@ Squash Merge 시 커밋 메시지에 `- #PR번호`를 추가한다.
 - `main` push → `deploy-dev.yml` → **dev 서버** 배포.
 - **prod 배포는 GitHub Release 발행(published)으로 트리거** (`deploy-prod.yml`).
     - 릴리스 태그: `vX.Y.Z` (Semantic Versioning)
-    - 릴리스 대상 커밋은 dev에 먼저 배포·검증된 `main` 커밋이어야 한다 (Flyway 마이그레이션 순서 보장).
+    - 릴리스 대상 커밋은 dev에 먼저 배포·검증된 `main` 커밋이어야 한다 (`ddl-auto`로 바뀌는 스키마를 dev에서 먼저 확인).
     - 릴리스 노트에 주요 변경(머지된 PR 목록)을 기술한다.
 
 ```
@@ -140,7 +147,20 @@ PR 머지 → main push → deploy-dev.yml → dev 배포·검증
 
 ## 5. 이슈 규칙
 
-`.github/ISSUE_TEMPLATE/issue-template.md`를 사용한다. 구현 내용을 체크리스트로 작성하고 참고 자료를 첨부한다.
+`.github/ISSUE_TEMPLATE/-issue-template.md`를 사용한다. 구현 내용을 체크리스트로 작성하고 참고 자료를 첨부한다.
+
+이슈와 PR에는 작업 type에 맞는 라벨을 하나 붙인다. PR은 연결한 이슈와 같은 라벨을 쓴다.
+
+| 라벨 | 대상 |
+| --- | --- |
+| `✨ FEAT` | `feat` |
+| `🐛 FIX` | `fix` |
+| `♻️ REFACTOR` | `refactor` |
+| `📝 DOCS` | `docs` |
+| `🛠️ CHORE` | `chore`, `test` |
+| `🎉 INIT` | `init` |
+| `🚑 HOTFIX` | 운영 중 장애를 긴급히 고치는 `fix` |
+| `🔖 RELEASE` | 릴리스 준비·발행 |
 
 ```
 이슈 생성 → 브랜치 생성 (이슈번호 포함) → 작업·커밋 → PR 생성 (이슈 연결) → 리뷰 → Merge → 브랜치 삭제
